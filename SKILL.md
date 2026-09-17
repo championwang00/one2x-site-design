@@ -1,6 +1,6 @@
 ---
 name: one2x-site-design
-description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x-enterprise）的页面设计规范。凡是要给这个官网新增页面、新增板块、改版块、做落地页/活动页/案例详情页/方案页，或用户说「按官网风格」「和官网保持一致」「One2X 官网」「企业官网」时都要先读本 skill：它规定了统一的 header/footer、设计 token、板块语法和组件库，保证新页面和现有首页是同一套东西。
+description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x-enterprise）的页面设计规范。凡是要给这个官网新增页面、新增板块、改版块、做落地页/活动页/案例详情页/方案页，或给它加语言、改文案、做多语言版本，或用户说「按官网风格」「和官网保持一致」「One2X 官网」「企业官网」时都要先读本 skill：它规定了统一的 header/footer、设计 token、板块语法、组件库、SEO 页专章，以及多语言与按语言的排印本地化，保证新页面和现有首页是同一套东西。
 ---
 
 # One2X 官网设计规范
@@ -17,6 +17,8 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 | `src/styles.css` | 按锚点搜，不要按行号（行号每次改动都会失准）：`:root{--ink:` 是营销页真正生效的 token；`header{position:sticky` 是 header 基础，`header.is-scrolled{` 是滚动态；`.site-footer{` 起是整段 footer；注释 `/* Section labels use the selected Voxt pill treatment. */` 附近是胶囊，`/* White cards on soft gray section bands` 附近是灰带上的卡片，`/* Gray bands share a fine diagonal hatch */` 是斜纹；文件末尾带日期注释的段落是历次增量 |
 | `src/tokens.css` | Figma 同步的 One2X/Medeo 品牌 token（圆角 `--shape-radius-*`、间距 `--space-s*`）。**颜色部分营销页不用**——页面色板以 styles.css 的 `:root` 为准 |
 | `src/components/ui/` | 现成组件：`keyline-icon.jsx`（图标映射）、`value-proof.jsx`（对比表 / 数据条 / MCN 卡）、`stats-bento.tsx`、`process-flow.tsx`、`logo-marquee.tsx`、`case-marquee.jsx`、`digit-pop.jsx`、`dot-pattern.tsx` |
+| `src/i18n/` | `config.js` 语言注册表、`messages/<code>.json` 全部文案、`index.jsx` 的 `useT()` / `<Lines/>`。**页面上任何一句文案都在这里，动文案前先读 §13** |
+| `src/components/ui/language-select.jsx` | 语言切换器，顶部导航与页脚共用一份 |
 | `public/images/one2x-wordmark.svg`、`public/fonts/` | 品牌字标与自托管字体，新页面直接引用同路径 |
 
 项目是 **React 19 + Vite + 原生 CSS**。Tailwind 只挂了 theme/utilities 层做兜底，页面布局全部走 `styles.css` 里的 class。不要为了新页面引入 shadcn、Radix、CVA 或第二套 token；不要用 Tailwind utility 拼版式。
@@ -56,6 +58,10 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 
 > 已知不符：首页 `#contact`（「从清晰需求开始。」）与 `#process`（「再进入规模化交付。」）两处标题带句号，早于本规则。新页面一律不带标点；复用 contact 段时把句号去掉——这会让新页面的 contact 标题和首页差一个字符，是当前唯一允许的头尾偏差。要彻底消掉，得改首页文案，等用户拍板。
 
+> **这套字阶、字距和字族只对中文成立。** Manrope 只有拉丁字形，`PingFang SC` / `Microsoft YaHei` 不覆盖谚文等文字；
+> h1 的 -1.8px 负字距是给方块字收紧用的，套到韩文上会把词间空格压扁到影响判读。
+> 每加一门非汉字语言，都要按 §13.5 单独覆写字族、字距、词距和首屏字号，不要改这里的中文数值。
+
 **圆角**：按钮 / 胶囊 / 标签 = `--shape-radius-full`；卡片 = 16–24px（`--shape-radius-16` / `-20` / `--radius` 24px）；大容器 26px；头像 50%。
 
 **间距**：板块上下 `--section-space` 110 / 80 / 64px；内容宽 `.shell{width:min(1216px,calc(100% - 64px))}`；卡片内边距 20–32px；网格 gap 16–18px。断点两个：**960px、700px**。
@@ -72,6 +78,7 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
     <Brand/>                                    {/* wordmark.svg 105×28 + <small>企业视频服务</small> */}
     <nav aria-label="主导航">{nav.map(([id,label])=><a href={`#${id}`}>{label}</a>)}</nav>
     <div className="header-actions">
+      <LanguageSelect className="header-language"/>   {/* 见 §13.6；≤700 隐藏，挪进 mobile-nav */}
       <Button onClick={openBrief}>提交需求</Button>   {/* 黑色胶囊 + 12px 外向箭头 */}
       <button className="icon-button menu" aria-label="打开导航" aria-expanded={menu}>…</button>
     </div>
@@ -86,6 +93,8 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 - 导航 5 项固定：精选案例 / 解决方案 / 服务流程 / 企业优势 / 常见问题，13px `#555`，gap 28（≤960 为 16）。**新页面的导航链接指回首页锚点**（`/#cases` 这种），不要为子页面另造一套导航。
 - ≤700：桌面 nav 隐藏，出现 44px 圆形 `.icon-button.menu`；`.mobile-nav` 纵向列表，边框顶线。
 - 主按钮在 header 里缩为 `padding:10px 16px;min-height:40px`，≤700 隐藏箭头。
+
+- 导航文案和 `aria-label` 一律走词条（`t('nav.cases')`、`t('common.mainNav')`），不要在 JSX 里写死中文。
 
 做第二个页面时，把 `Brand`、`nav`、header JSX 抽成 `src/components/site-header.jsx`，两个页面共用，而不是复制粘贴。
 
@@ -104,12 +113,15 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
         <a href="#home"><span>企业视频服务</span><OutwardArrow/></a>
       </nav>
     </div>
-    <p className="site-footer-copy">© 2025 All rights reserved</p>
+    <div className="site-footer-bottom">                       {/* 2026-09-17：版权与语言切换两端对齐 */}
+      <p className="site-footer-copy">© 2025 All rights reserved</p>
+      <LanguageSelect tone="dark" placement="up"/>
+    </div>
   </div>
 </footer>
 ```
 
-规则：纯黑 `#000` 整块，`min-height:720px`（≤960 560，≤700 auto），`padding:80px 0`（64 / 48）。字标 `filter:invert(1)` 反白 97×26。大标题 64px（48 / 36）Manrope 600，`<em>` 切 Source Serif 4 斜体。右侧链接列宽 208px 右对齐，18px 500 字重，hover 时 `opacity:.5` 且箭头 `rotate(45deg)`。版权行 14px `opacity:.5`。footer 前面通常接一段白底 contact section（「开始合作，从清晰需求开始」+ 二维码卡），新页面末尾沿用这一对。
+规则：纯黑 `#000` 整块，`min-height:720px`（≤960 560，≤700 auto），`padding:80px 0`（64 / 48）。字标 `filter:invert(1)` 反白 97×26。大标题 64px（48 / 36）Manrope 600，`<em>` 切 Source Serif 4 斜体。右侧链接列宽 208px 右对齐，18px 500 字重，hover 时 `opacity:.5` 且箭头 `rotate(45deg)`。版权行 14px `opacity:.5`，和语言切换器同排两端对齐（≤700 改纵向）——**这是 footer 唯一允许的结构变更**，样式仍不许动。footer 前面通常接一段白底 contact section（「开始合作，从清晰需求开始」+ 二维码卡），新页面末尾沿用这一对。
 
 ## 5. 板块语法
 
@@ -147,6 +159,8 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 
 **卡片封面用图**：只在有题材匹配的素材时才配图。`images/cases-16`、`images/blog-covers` 是首页案例与受众用的成片截帧，题材对不上时硬套会同时坏两件事——语义不对，而且这些截帧自带色彩，直接违反 §1 的近乎单色。没有匹配素材就走**纯文字卡**：`01`–`06` 编号（12px `#aaa`）+ h3 + 说明 + `.mcn-tag`，对齐 `.quality-grid` 的编辑感（参考 `.seo-card`）。宁可没有图，也不要错的图。
 
+**语言切换器 `.language-select`**：无描边、无底色的触发器（13px `#555` + chevron），hover **只变文字颜色**，读起来是一个导航链接而不是按钮；菜单白底 16px 圆角 + `--line` 描边；深色变体 `on-dark` 给页脚。完整规格见 §13.6。**不要用国旗**。
+
 **图标**：`<Icon name="…"/>` 走 `keyline-icon.jsx` 的 `@keyline-icons/react` 映射；外向箭头统一 `<OutwardArrow/>`。不要另引 lucide 或手绘 SVG。品牌 logo 一律用官方资产或来源可查的图标包（`@iconify-json/logos`、`simple-icons`），不凭记忆描。
 
 ## 7. 动效尺度
@@ -159,8 +173,8 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 2. 抽出 `site-header.jsx` / `site-footer.jsx`（若还没抽），新页面导入，不复制。**`Modal` 和 `BriefForm` 要一起抽**——header 的「提交需求」按钮依赖它们，只抽头尾的话子页那颗按钮点不开。现成位置：`src/components/site/`（`primitives.jsx` 放 Brand / Button / SectionTitle / useReveal / usePlayIntro / Modal，`brief-form.jsx` 放需求弹窗）。`SiteHeader` 收一个 `home` prop，子页传 `'/'`，导航就变成 `/#cases` 指回首页锚点。
 3. 按 §5 排板块：先写 JSX 结构，class 全部取自现有；数据放 `src/*.json`（照 `works.json`、`mcn-cases.json` 的做法）。
 4. 只在 `styles.css` 末尾追加规则，注释写日期和用途；新 class 用板块前缀（`.mcn-`、`.compare-` 这种）。
-5. 文案：标题不带句读；数字用「300+」「860W+」「87%」这类短形式；说明 ≤ 2 行。
-6. 自查（§9），`npm run build` 通过，截 1440 / 390 / 320 三档给用户看，等确认再谈部署。
+5. 文案：**全部写进 `src/i18n/messages/*.json`，一句都不留在 JSX 里**（含 `aria-label` / `alt` / `placeholder`），每门语言都要补齐，见 §13。标题不带句读；数字用「300+」「860W+」「87%」这类短形式；说明 ≤ 2 行。
+6. 自查（§9），`npm run build` 通过，**每门语言各截** 1440 / 390 / 320 三档给用户看，等确认再谈部署。
 
 ## 8.5 SEO 页 / 独立落地页
 
@@ -197,6 +211,9 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 - 标题末尾无标点（含复用来的 contact / process 标题）。
 - 卡片配图题材是否真的对得上；对不上就换成纯文字卡。
 - SEO 页：title / description / canonical / OG / JSON-LD 齐了吗，JSON-LD 的 FAQ 和页面上是否逐字一致。
+- 页面上还有没有硬编码文案（含 `aria-label` / `alt` / `placeholder` / 一个「关闭」）；有没有把可翻译文案当标识符用（§13.2）。
+- 每门语言的词条 key 集合是否和默认语言一致，控制台有没有 i18n 告警；`vercel.json` 的 rewrite 补了没有（§13.4）。
+- 非汉字语言是否单独过了字族、字距、词距和首屏长度（§13.5）；`/ko/` 这类前缀路径直接打开是不是对的语言。
 
 ## 10. 本 skill 的维护（项目整体规则）
 
@@ -259,6 +276,32 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 - 一次性偏好：具体选了「色相」和「投影」这两条，是因为这两天用户纠正最多的就是它们。换个项目该查什么得重新看。
 - 悬而未决：字号阶梯什么时候纳入 CI，取决于存量什么时候收敛。现在定时间表没意义。
 
+### 2026-09-17 · 官网做成多语言站（中文 + 韩语）
+
+**改了什么**：新增 §13 多语言整章；§0 真源表加 `src/i18n/` 与 `language-select.jsx`；§2 加「这套字阶只对中文成立」的警告；§3 header 与 §4 footer 补语言切换器（footer 底行结构变更）；§6 加切换器组件；§8 流程要求文案进词条、每门语言各截图；§9 自查加三条。
+
+**反思**——三种病因齐了：
+
+- *缺漏*：规范此前默认官网只有中文，文案怎么组织一个字没提。结果第一版全站文案硬编码在 JSX、`works.json`、`faq.json` 里，做韩语时只能把 App.jsx 和 8 个组件全部重构一遍。这不是韩语的成本，是「没早点把文案和结构分开」的利息。→ 开 §13 专章。
+- *误导*：§2 把字阶、字距、字族当成全站事实写。实际上 `-1.8px` 是给方块字调的，套到谚文上把词间空格压到 0.169em，用户一眼就看出「逗号后面没空格」。照原文执行的人会得到一个排印不合格的韩语页，而且查不出哪条规则错了。→ 在 §2 顶部写明只对中文成立，具体覆写规则进 §13.5。
+- *触发问题*：用户给的参考组件来自 21st.dev，是 shadcn + Tailwind + lucide 的写法，和 §1「近乎单色」、§6「不要另引 lucide」、开篇「不要为了新页面引入 shadcn」三条直接冲突。规范虽然写了这些禁令，但没说「外部组件怎么落地」——照抄和推翻之间缺一档。→ §13.6 把切换器的目标形态和落地方式一起写死：保留交互形态，视觉与依赖全部换成官网自己的。
+
+**反馈（代价）**：
+
+- **改一句文案从改 JSX 变成改 JSON，而且要改 N 遍。** 加一门语言就多一份要同步的文件；新板块忘了补词条不会报错，只会静默回退中文——开发模式有控制台告警，生产环境没有。这是本次引入的最大的一笔新债。
+- **`works.json` / `services.json` / `faq.json` 拆成「结构 + 词条」两处。** 改一条 FAQ 现在要动两个文件（faq.json 加 id、词条写正文）。收益是语言不再污染标识符，成本是多一层间接。
+- **`vercel.json` 没能被注册表吃掉。** Vercel 的 `source` 不接受内联正则通配（`/:locale([a-z]{2}...)` 试过，不生效），每门语言必须手写三条 rewrite。忘了这步，新语言的 URL 直接 404，而且本地 dev 看不出来——本地是 Vite 的 SPA 回退，不走 vercel.json。
+- **按语言覆写字距意味着 §2 不再是唯一的排印真源。** 现在是「§2 管中文 + §13.5 管其余」。语言一多，`html[lang=xx]` 的覆写块会堆起来，需要定期回看有没有可以收敛成通则的部分。
+- **§8.5 的 SEO 欠账翻倍了。** CSR 下每多一门语言就多一份不可抓取的正文，sitemap 还要为每个 URL 列出全部语言版本。多语言把这笔债从「该还」推到了「拖不起」。
+
+**评判（原则 vs 一次性偏好）**：
+
+- **原则**（换语言、换板块都成立）：文案一句不留在 JSX；结构与文案用 id 关联，可翻译文案绝不当标识符；URL 前缀决定语言且排在 localStorage 之前；断行标题写成数组；表单 `name` 与提交给业务侧的值保持中文；非汉字语言必须单独过排印；切换器的 hover 跟随导航链接而不是按钮。
+- **一次性偏好**（不进规范，只写在交付说明里）：韩语字距 `-.012em` / 词距 `.06em` 的具体数值、hero 的 `clamp(34px,4.05vw,60px)` 档位、「소재 하나, X배 생산량」这句文案、切换器放在 header-actions 最左和 footer 底行右端的具体位置。
+- **悬而未决**：① Vercel rewrite 能否写成通配，还是永远一门语言一组——这次被证伪一次，换 Vercel 版本可能又能用，别当定论；② 词条 key 一致性该不该进 §12 的 CI（能机器判定、不会误伤，是好候选，但要先确定翻漏时是该拦还是该警告）；③ 预渲染什么时候做——多语言之后这件事的收益已经明显大于成本，但改动面超出本规范的范围。
+
+**另记一笔（不是本次改动，是本次发现的事实）**：本 skill §0 和 §12 引用的 `src/components/ui/value-proof.jsx`、`src/mcn-cases.json`、`src/pages/`、`solutions/` 目录、`scripts/design-check.mjs`、`.github/workflows/design-check.yml`、以及本文件自己在仓库里的位置 `.claude/skills/`，在当前 main（`Restore main to initial website upload`）里**全部不存在**——那批提交被回滚掉了。规范描述的是一个比 main 更靠前的代码状态。§6 里的 `.compare-table` / `.mcn-card` / `.seo-card` 样式同样不在现在的 `styles.css` 里。**照 §0 去读源码的人会找不到文件，然后合理地怀疑整份规范。** 要么把那批提交挑回来，要么把这些章节降级成「历史方案」，需要用户拍板。
+
 ## 12. CI 强制检查
 
 前面所有章节靠的是「读了会遵守」。`CLAUDE.md` / `AGENTS.md` / `.cursor/rules` / `.github/copilot-instructions.md` 四个入口能保证规范被**加载**，但保证不了写代码时**遵守**。CI 是唯一会亮红灯的一层。
@@ -277,3 +320,101 @@ description: One2X 企业视频服务官网（enterprise.one2x.ai，源码 one2x
 **破例**：在那一行加 `/* design-check-ignore */`，并在 PR 里说明理由。破例要留痕，但不禁止破例——真有活动页需要一抹彩色时，红灯不该变成办不成事的理由。
 
 **这层拦不住什么**：板块结构、留白节奏、文案语气、头尾有没有真的复用。这些机器判不准，硬查只会误报。它们仍然靠 §9 自查和人工 review。
+
+## 13. 多语言
+
+官网从 2026-09-17 起是多语言站：简体中文在根路径 `/`，韩语在 `/ko/`。
+**页面上不允许再出现硬编码文案**——包括 `aria-label`、`alt`、`placeholder` 和一个按钮里的「关闭」。
+
+### 13.1 三个文件决定一切
+
+| 文件 | 职责 |
+|---|---|
+| `src/i18n/config.js` | 语言注册表：`code / label / htmlLang / ogLocale / dir / path`。下拉菜单、URL 前缀、hreflang、`<html lang>`、`<title>`、description 全从这里长出来 |
+| `src/i18n/messages/<code>.json` | 该语言的全部文案。`import.meta.glob` 自动装载，文件名即 `code` |
+| `src/i18n/index.jsx` | `LocaleProvider` / `useT()` / `useI18n()` / `<Lines/>`，以及把语言同步进 URL 和 `<head>` |
+
+组件里只写 `const t = useT()`，然后 `t('faq.items.pricing.question')`。key 走点路径；缺 key 时开发模式在控制台点名，运行时回退默认语言。
+
+**不引第三方 i18n 库。** 一个 SPA 加几个静态入口，这点体量不值得再加一层依赖和 API——这和「不为新页面引入 shadcn」是同一条判断。
+
+### 13.2 结构与文案分离
+
+`works.json` / `services.json` / `faq.json` **只留结构**：`id`、排序、素材路径、图标名。标题正文按 `id` 去词条取。
+
+这条不是洁癖。`case-marquee` 原本拿 `work.title` 当 DOM 标识（`data-sample-title`）和视频预热事件的 key——标题一旦随语言变，切语言就会打断预加载，已预热的卡片也认不出自己。改成 `id` 之后语言只影响显示。**任何把可翻译文案当标识符用的地方都是同一个坑**，写之前先问一句「这个值会不会被翻译」。
+
+组件里的结构数组（图标、封面、顺序）留在代码里，文案按 key 取：
+
+```jsx
+const categories = [{ key: 'social', icon: Zap }, { key: 'brand', icon: Megaphone }];
+…
+<span>{t(`categories.items.${item.key}`)}</span>
+```
+
+### 13.3 断行写成数组
+
+需要手动断两行的 h2，词条里写成数组，一行一个元素，由 `<Lines value={t('cases.title')}/>` 渲染成 `<br/>`：
+
+```json
+"title": ["브랜드 메시지부터 제품 전환까지", "아이디어를 눈에 보이는 성과로"]
+```
+
+中文断在语义处的位置，换一门语言几乎一定不同。**不要在词条里塞 `<br/>`**，也不要让翻译去猜断点。
+
+### 13.4 URL 与语言判定
+
+- 默认语言在根路径（`path: ''`），其余语言走路径前缀（`/ko/`）。**一门语言一个可分享、可收录的 URL**，不用查询参数。
+- 判定顺序固定：**URL 前缀 > 上次手动选择（localStorage）> 浏览器语言 > 默认语言**。URL 排第一，分享出去的 `/ko/` 在任何人手里都打开韩语版。
+- 切换语言走 `pushState`，浏览器后退能退回上一个语言；检测到的语言和地址不一致时用 `replaceState` 对齐，不制造多余历史。
+- `<html lang/dir>`、`<title>`、`description`、`og:*`、hreflang（含 `x-default`）随语言实时重写；`index.html` 里另留一份静态 hreflang 兜底给不执行 JS 的抓取器。
+- **`vercel.json` 要手动补**：每门语言三条 rewrite——`"/<path>"`、`"/<path>/"`、`"/<path>/:path*"`，全部落到 `/index.html`。Vercel 的 `source` 不接受内联正则通配（`/:locale([a-z]{2}(?:-[A-Za-z]{2})?)` 试过，不生效）。这是唯一没被注册表吃掉的手动项，**忘了这步新语言的 URL 直接 404，而且本地 dev 发现不了**——本地走的是 Vite 的 SPA 回退，不读 vercel.json。
+
+### 13.5 排印要按语言放松，不能照搬中文
+
+§2 那套字阶和负字距是**按中文定的**。照搬到别的文字会出事：
+
+- **字距 / 词距**：h1 的 `-1.8px`（≈ -.03em）套到谚文上，把词间空格压到 **0.169em**——正常拉丁词距是 0.25–0.3em。视觉后果是「逗号后面看起来没空格」。韩语靠 띄어쓰기 断词，空格被压扁不只是难看，直接影响判读。
+  → `html[lang=ko] .hero h1, html[lang=ko] h2{letter-spacing:-.012em;word-spacing:.06em}`（空格回到 0.248em）。
+- **标点**：韩语用**半角**逗号句号，前不空、后空一格（`소재 하나, X배`）。中日文的全角「，」自带留白，韩语没有——中文看不出的空格问题，韩语一定看得出。
+- **字形回退**：`--font` 里的 Manrope 只有拉丁字形，中文字体不覆盖谚文。按语言覆写整条字族：
+  `html[lang=ko]{--font:Manrope,'Apple SD Gothic Neo',Pretendard,'Malgun Gothic','Noto Sans KR',sans-serif}`
+- **长度**：首屏 h1 是 `white-space:nowrap`，韩语比中文长两三个字，窄屏会顶出去。按语言让一档字号：`html[lang=ko] .hero h1{font-size:clamp(34px,4.05vw,60px)}`。
+- **flex 吃空格**：`.hero h1` 是 flex + nowrap，会把前半句结尾的半角空格吃掉。`.hero h1>span{white-space:pre}` 保住它。中文用全角逗号看不出来，这是只有换语言才会暴露的坑。
+
+一句话：**§2 的数值只对中文成立；每加一门非汉字语言，都要单独过一遍字族、字距、词距和长度。** 覆写统一写在 `styles.css` 末尾带日期的段落里，选择器一律 `html[lang=<code>]`。
+
+### 13.6 语言切换器
+
+`src/components/ui/language-select.jsx`，**顶部导航和页脚各一个，共用一份实现**。菜单项由注册表生成，加语言不动这个文件。
+
+- **触发器：无描边、无底色**，13px `#555` + 12px chevron（展开转 180°）。hover **只变文字颜色**到 `--ink`，不铺底色——和 `nav a:hover` 是同一条规则。它读起来必须是一个导航链接，不是一个按钮。
+- 菜单：白底、`1px var(--line)`、16px 圆角、§6 批准的那档极淡阴影；当前语言 600 字重 + `CheckSmallIcon`。
+- 每个语言用**它自己的写法**（`简体中文` / `한국어`），不翻译、不跟随当前语言变。
+- **不用国旗**。国旗是彩色块面，违反 §1；而且语言不等于国家。
+- 深色变体 `on-dark` 给黑色页脚，`data-placement="up"` 让菜单向上弹，避免被视口切掉。
+- ≤700：顶部让位给「提交需求」和菜单钮，切换器挪进展开的 `.mobile-nav` 末尾，样式和导航项一致。
+- 交互（照 21st.dev 那类下拉的形态，实现全部自己写）：点外关闭、Esc 关闭并把焦点还给触发器、上下键在选项间移动、展开时焦点落到当前项。
+
+> **外部组件怎么落地**：参考稿通常是 shadcn + Tailwind + lucide。**保留它的交互形态和信息结构，视觉与依赖全部换成官网自己的**——原生 CSS + `styles.css` 末尾追加、`@keyline-icons/react`、现有 token。不要因为「参考里有」就引入第二套依赖或第二种色相。
+
+### 13.7 不该翻译的东西
+
+- 表单的 `name` 属性、以及提交给飞书的服务名，**始终是中文**。页面语言只影响标签显示，商务侧收到的卡片格式不随访客语言变化；卡片里另加一栏「页面语言」，用来判断该用哪种语言回复。
+- 英文 eyebrow（`Selected work`、`Why One2X`、`Core business`）和 footer 大标题 `From intelligence to infinity` 不翻译——它们是视觉元素，不是文案。
+- 品牌名与产品名：One2X、Medeo、Recipe、API。
+- 语言菜单里的语言名。
+
+### 13.8 加一门语言
+
+1. 复制 `src/i18n/messages/zh-CN.json` 为 `<code>.json`，逐条翻译。结构不动，只改值。
+2. `src/i18n/config.js` 的 `LOCALES` 追加一条，`path` 填 URL 前缀。
+3. `vercel.json` 补三条 rewrite（§13.4）。
+4. 按 §13.5 过一遍排印：字族回退、标题字距词距、首屏长度。
+5. 每门语言各截 1440 / 390 两档，跑 §9 自查里的多语言三条。
+
+### 13.9 已知欠账
+
+- **CSR 下 `/ko/` 的正文同样不在静态 HTML 里。** meta / hreflang / JSON-LD 静态输出没问题，正文可抓取仍需预渲染——多语言把 §8.5 的这笔债翻了倍，每多一门语言多一份不可抓取的正文。
+- `sitemap.xml` / `robots.txt` 仍然没有，而且现在每个 URL 都要列出全部语言版本。
+- **词条完整性只有开发模式的控制台告警，没进 CI。** 生产环境翻漏了会静默回退中文，页面上看不出来。§12 该加一条「所有语言的 key 集合与默认语言一致」——能机器判定、不会误伤，是 CI 的好候选。
